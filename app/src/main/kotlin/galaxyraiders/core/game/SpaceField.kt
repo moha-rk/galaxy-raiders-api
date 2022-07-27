@@ -38,8 +38,11 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
   var asteroids: List<Asteroid> = emptyList()
     private set
 
+  var explosions: List<Explosion> = emptyList()
+    private set
+
   val spaceObjects: List<SpaceObject>
-    get() = listOf(this.ship) + this.missiles + this.asteroids
+    get() = listOf(this.ship) + this.missiles + this.asteroids + this.explosions
 
   fun moveShip() {
     this.ship.move(boundaryX, boundaryY)
@@ -61,6 +64,12 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
     this.asteroids += this.createAsteroidWithRandomProperties()
   }
 
+  fun generateExplosion(asteroidExploded: Asteroid) {
+    val explosionPosition = asteroidExploded.center
+    val asteroidRadius = asteroidExploded.radius
+    this.explosions += this.createExplosion(explosionPosition, asteroidRadius)
+  }
+
   fun trimMissiles() {
     this.missiles = this.missiles.filter {
       it.inBoundaries(this.boundaryX, this.boundaryY)
@@ -71,6 +80,16 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
     this.asteroids = this.asteroids.filter {
       it.inBoundaries(this.boundaryX, this.boundaryY)
     }
+  }
+
+  fun trimExplosions() {
+    this.explosions = this.explosions.filter {
+      !it.shouldBeRemoved()
+    }
+  }
+
+  fun updateExplosions() {
+    this.explosions.map { it.rendered() }
   }
 
   private fun initializeShip(): SpaceShip {
@@ -152,5 +171,12 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
     )
 
     return scaledMass * SpaceFieldConfig.asteroidMassMultiplier
+  }
+
+  private fun createExplosion(position: Point2D, asteroidRadius: Double): Explosion {
+    return Explosion(
+      initialPosition = position,
+      radius = asteroidRadius,
+    )
   }
 }

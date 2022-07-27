@@ -126,6 +126,19 @@ class GameEngineTest {
   }
 
   @Test
+  fun `it handle new missile not colliding with asteroid`() {
+    // We know the asteroid is generated on the top of the field, and the missile
+    // is generated on the bottom (spaceship's position)
+    val numExplosions = hardGame.field.explosions.size
+    hardGame.generateAsteroids()
+    hardGame.field.generateMissile()
+
+    hardGame.handleCollisions()
+
+    assertEquals(numExplosions, hardGame.field.explosions.size)
+  }
+
+  @Test
   fun `it can move its space objects`() {
     hardGame.field.generateAsteroid()
     hardGame.field.generateMissile()
@@ -154,6 +167,8 @@ class GameEngineTest {
   fun `it can trim its space objects`() {
     hardGame.field.generateAsteroid()
     hardGame.field.generateMissile()
+    val asteroid = hardGame.field.asteroids.last()
+    hardGame.field.generateExplosion(asteroid)
 
     val missile = hardGame.field.missiles.last()
     val missileDistanceToTopBorder =
@@ -162,20 +177,28 @@ class GameEngineTest {
       missileDistanceToTopBorder / Math.abs(missile.velocity.dy)
     ).toInt()
 
-    val asteroid = hardGame.field.asteroids.last()
     val asteroidDistanceToBottomBorder =
       asteroid.center.y - hardGame.field.boundaryY.start
     val repetitionsToGetAsteroidOutsideOfSpaceField = Math.ceil(
       asteroidDistanceToBottomBorder / Math.abs(asteroid.velocity.dy)
     ).toInt()
 
+    val explosion = hardGame.field.explosions.last()
+    val repetitionsToRemoveExplosion = EXPLOSION_RENDER_DURATION
+
     val repetitionsToGetSpaceObjectsOutOfSpaceField = Math.max(
       repetitionsToGetMissileOutOfSpaceField,
       repetitionsToGetAsteroidOutsideOfSpaceField,
     )
 
-    repeat(repetitionsToGetSpaceObjectsOutOfSpaceField) {
+    val repetitionsToRemoveObjectsFromSpaceField = Math.max(
+      repetitionsToGetSpaceObjectsOutOfSpaceField,
+      repetitionsToRemoveExplosion,
+    )
+
+    repeat(repetitionsToRemoveObjectsFromSpaceField) {
       hardGame.moveSpaceObjects()
+      hardGame.updateExplosions()
     }
 
     hardGame.trimSpaceObjects()
@@ -184,6 +207,7 @@ class GameEngineTest {
       "GameEngine should trim all space objects",
       { assertEquals(-1, hardGame.field.missiles.indexOf(missile)) },
       { assertEquals(-1, hardGame.field.asteroids.indexOf(asteroid)) },
+      { assertEquals(-1, hardGame.field.explosions.indexOf(explosion)) },
     )
   }
 
